@@ -1,0 +1,216 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(caTools)
+library(ROSE)
+library(smotefamily)
+library(rpart)
+library(rpart.plot)
+```
+
+# Enhancing Financial Security: A Comprehensive Credit Card Fraud Detection System
+
+## Introduction
+In today's digital environment, credit card fraud has emerged as a common and urgent problem. Criminals have developed sophisticated methods to exploit payment system flaws as financial transactions increasingly move to online platforms, leading to significant financial losses and jeopardizing the trust of both individuals and organizations. The project "Enhancing Financial Security: A Comprehensive Credit Card Fraud Detection System" aims to create an innovative and reliable solution to successfully detect credit card fraud in response to this expanding threat. 
+
+The system will detect suspicious trends, odd behaviors, and fraudulent actions in real-time by analyzing enormous volumes of transaction data, enabling quick response. The initiative will make use of machine learning and data analytics to do this. The system will learn to spot fraudulent patterns, adapt to new fraud strategies, and continuously increase its detection accuracy by training sophisticated models on large datasets. The system will recognize abnormalities from typical transaction patterns and instantly flag any fraudulent transactions for inquiry thanks to the integration of sophisticated anomaly detection algorithms. This will incorporate several important evaluation techniques to assess the performance and efficacy of the credit card fraud detection system. These techniques include the use of a confusion matrix, calculating a 95% confidence interval, and conducting McNemar's Test to determine the statistical significance of model comparisons.
+
+```{r, include=FALSE}
+credit_card = read.csv("C:/Users/manis/OneDrive/Documents/Stat 240/data/creditcard.csv")
+```
+
+```{r, include=FALSE}
+str(credit_card)
+
+#Converts Class to a factor variable
+credit_card$Class = factor(credit_card$Class, levels = c(0, 1))
+
+#Summary of the credit card data set
+summary(credit_card)
+
+#Sum of missing values in data set
+sum(is.na(credit_card))
+```
+
+```{r, echo=FALSE}
+table(credit_card$Class)
+
+#Percentage of distribution of legit and fraud transactions
+prop.table(table(credit_card$Class))
+
+#Percentage of distribution with pie chart
+labels = c("Legit", "Fraud")
+labels = paste(labels, round(100*prop.table(table(credit_card$Class)), 2))
+labels = paste0(labels, "%")
+
+pie(table(credit_card$Class), labels, col = c("greenyellow", "violet"),
+    main = "Percentage of Credit Card Transactions")
+```
+
+```{r, echo=FALSE}
+predictions = rep.int(0, nrow(credit_card))
+predictions = factor(predictions, levels = c(0, 1))
+
+confusionMatrix(data = predictions, reference = credit_card$Class)
+```
+
+```{r, echo=FALSE}
+set.seed(1)
+credit_card = credit_card %>%
+  sample_frac(0.1)
+
+table(credit_card$Class)
+
+ggplot(data = credit_card, aes(x = V1, y = V2, col = Class)) +
+  geom_point() +
+  theme_bw() +
+  scale_color_manual(values = c('darkturquoise', 'mediumvioletred'))
+```
+
+```{r, echo=FALSE}
+set.seed(123)
+
+data_sample = sample.split(credit_card$Class, SplitRatio = 0.80)
+
+train_data = subset(credit_card, data_sample == TRUE)
+
+test_data = subset(credit_card, data_sample == FALSE)
+
+dim(train_data)
+dim(test_data)
+```
+
+```{r, echo=FALSE}
+table(train_data$Class)
+
+n_legit = 22750
+new_frac_legit = 0.50
+new_n_total = n_legit / new_frac_legit
+new_n_total
+
+oversampling_result = ovun.sample(Class ~ .,
+                                  data = train_data, 
+                                  method = "over",
+                                  N = new_n_total, 
+                                  seed = 2019)
+
+oversampled_credit = oversampling_result$data
+
+table(oversampled_credit$Class)
+
+ggplot(data = oversampled_credit, aes(x = V1, y = V2, col = Class)) +
+  geom_point(position = position_jitter(width = 0.1)) + 
+  theme_bw() +
+  scale_color_manual(values = c('darkturquoise', 'mediumvioletred'))
+```
+
+```{r, echo=FALSE}
+table(train_data$Class)
+
+n_fraud = 35
+new_frac_fraud = 0.50
+new_n_total = n_fraud / new_frac_fraud
+new_n_total
+
+undersampling_result = ovun.sample(Class ~ .,
+                                  data = train_data, 
+                                  method = "under",
+                                  N = new_n_total, 
+                                  seed = 2019)
+
+undersampled_credit = undersampling_result$data
+
+table(undersampled_credit$Class)
+
+ggplot(data = undersampled_credit, aes(x = V1, y = V2, col = Class)) +
+  geom_point() + 
+  theme_bw() +
+  scale_color_manual(values = c('darkturquoise', 'mediumvioletred'))
+```
+
+```{r, echo=FALSE}
+n_new = nrow(train_data)
+fraction_fraud_new = 0.50
+
+sampling_result = ovun.sample(Class ~ .,
+                                  data = train_data, 
+                                  method = "both",
+                                  N = n_new, 
+                              p = fraction_fraud_new,
+                                  seed = 2019)
+
+sampled_credit = sampling_result$data
+
+table(sampled_credit$Class)
+
+prop.table(table(sampled_credit$Class))
+
+ggplot(data = sampled_credit, aes(x = V1, y = V2, col = Class)) +
+  geom_point(position = position_jitter(width = 0.2)) + 
+  theme_bw() +
+  scale_color_manual(values = c('darkturquoise', 'mediumvioletred'))
+```
+
+
+```{r, echo=FALSE}
+table(train_data$Class)
+
+n0 = 22750
+n1 = 35
+r0 = 0.6
+
+ntimes = ((1 - r0) / r0 * (n0 / n1) - 1)
+ntimes
+
+smote_output = SMOTE(X = train_data[ , -c(1, 31)],
+                     target = train_data$Class,
+                     K = 5,
+                     dup_size = ntimes)
+
+credit_smote = smote_output$data
+
+colnames(credit_smote)[30] = "Class"
+
+prop.table(table(credit_smote$Class))
+
+ggplot(data = train_data, aes(x = V1, y = V2, col = Class)) +
+  geom_point() + 
+  scale_color_manual(values = c('darkturquoise', 'mediumvioletred'))
+
+ggplot(data = credit_smote, aes(x = V1, y = V2, col = Class)) +
+  geom_point() + 
+  scale_color_manual(values = c('darkturquoise', 'mediumvioletred'))
+```
+
+```{r, echo=FALSE}
+CART_model = rpart(Class ~ ., credit_smote)
+
+rpart.plot(CART_model, extra = 0, type = 5, tweak = 1.2)
+
+predicted_val = predict(CART_model, test_data, type = 'class')
+
+confusionMatrix(predicted_val, test_data$Class)
+```
+
+```{r, echo=FALSE}
+predicted_val = predict(CART_model, credit_card[-1], type = 'class')
+confusionMatrix(predicted_val, credit_card$Class)
+```
+
+```{r, echo=FALSE}
+CART_model = rpart(Class ~ ., train_data[,-1])
+
+rpart.plot(CART_model, extra = 0, type = 5, tweak = 1.2)
+
+predicted_val = predict(CART_model, test_data[,-1], type = 'class')
+
+confusionMatrix(predicted_val, test_data$Class)
+```
+
+```{r, echo=FALSE}
+predicted_val = predict(CART_model, credit_card[,-1], type = 'class')
+confusionMatrix(predicted_val, credit_card$Class)
+```
