@@ -19,7 +19,7 @@ In today's digital environment, credit card fraud has emerged as a common and ur
 The system will detect suspicious trends, odd behaviors, and fraudulent actions in real-time by analyzing enormous volumes of transaction data, enabling quick response. The initiative will make use of machine learning and data analytics to do this. The system will learn to spot fraudulent patterns, adapt to new fraud strategies, and continuously increase its detection accuracy by training sophisticated models on large datasets. The system will recognize abnormalities from typical transaction patterns and instantly flag any fraudulent transactions for inquiry thanks to the integration of sophisticated anomaly detection algorithms. This will incorporate several important evaluation techniques to assess the performance and efficacy of the credit card fraud detection system. These techniques include the use of a confusion matrix, calculating a 95% confidence interval, and conducting McNemar's Test to determine the statistical significance of model comparisons.
 
 ```{r, include=FALSE}
-credit_card = read.csv("C:/Users/manis/OneDrive/Documents/Stat 240/data/creditcard.csv")
+credit_card = read.csv("creditcard.csv")
 ```
 
 ```{r, include=FALSE}
